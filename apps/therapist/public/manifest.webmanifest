@@ -1,0 +1,9 @@
+{
+  "name": "CBT記録(治療者側)",
+  "short_name": "CBT治療者",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#f6f7f9",
+  "theme_color": "#059669",
+  "icons": []
+}

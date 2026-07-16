@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <title>CBT記録(治療者側)M0スパイク</title>
+    <style>
+      * { box-sizing: border-box; margin: 0; }
+      body {
+        font-family: -apple-system, "Hiragino Sans", "Yu Gothic UI", sans-serif;
+        background: #f6f7f9; color: #1a1a2e; padding: 16px;
+      }
+      main { max-width: 640px; margin: 0 auto; display: grid; gap: 12px; }
+      h1 { font-size: 18px; }
+      .card { background: #fff; border-radius: 12px; padding: 14px; box-shadow: 0 1px 3px rgba(0,0,0,.08); }
+      .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+      button { font-size: 15px; padding: 8px 14px; border-radius: 8px; border: 1px solid #ccc; background: #fff; }
+      button.primary { background: #059669; color: #fff; border-color: #059669; font-weight: 600; }
+      video { width: 100%; border-radius: 8px; background: #000; }
+      .progress { font-size: 24px; font-weight: 700; font-variant-numeric: tabular-nums; }
+      .ok { color: #059669; }
+      .err { color: #dc2626; }
+      .stats { font-size: 13px; color: #444; line-height: 1.7; }
+      textarea { width: 100%; font-size: 11px; font-family: monospace; min-height: 72px; border-radius: 8px; border: 1px solid #ccc; padding: 8px; }
+      table { border-collapse: collapse; font-size: 14px; }
+      td, th { border: 1px solid #ddd; padding: 4px 10px; text-align: left; }
+    </style>
+  </head>
+  <body>
+    <main id="root"></main>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

@@ -1,0 +1,17 @@
+{
+  "name": "cbt-app",
+  "private": true,
+  "version": "0.1.0",
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "dev:patient": "npm -w apps/patient run dev",
+    "dev:therapist": "npm -w apps/therapist run dev",
+    "dev:therapist:ipad": "npm -w apps/therapist run dev:ipad",
+    "dev:patient:ipad": "npm -w apps/patient run dev:ipad",
+    "test": "npm -w packages/core run test",
+    "build": "npm -w apps/patient run build && npm -w apps/therapist run build"
+  }
+}
