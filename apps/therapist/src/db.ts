@@ -1,7 +1,7 @@
 // 治療者側 IndexedDB層(仕様書 §2・§7: 患者別の記録蓄積。正本端末)
 
 import { openDB, type DBSchema, type IDBPDatabase } from 'idb';
-import { newerOf, nowJstIso, type CbtRecord } from '@cbt/core';
+import { migrateRecord, newerOf, nowJstIso, type CbtRecord } from '@cbt/core';
 
 /** 保存形式: 受信レコード+pid(複合キー) */
 export type StoredRecord = CbtRecord & { pid: string };
@@ -47,6 +47,21 @@ export interface ReceiveResult {
   unchanged: number; // 既知(同一or古い)
 }
 
+/** v1.3 移行処理: 蓄積済みレコードの旧型(three_column等)を変換。起動時に1回呼ぶ(冪等) */
+export async function runMigrations(): Promise<number> {
+  const d = await db();
+  const all = await d.getAll('records');
+  const changed = all
+    .map((r) => ({ before: r, after: migrateRecord(r) as StoredRecord }))
+    .filter((x) => x.after !== x.before);
+  if (changed.length > 0) {
+    const tx = d.transaction('records', 'readwrite');
+    await Promise.all(changed.map((x) => tx.store.put({ ...x.after, pid: x.before.pid })));
+    await tx.done;
+  }
+  return changed.length;
+}
+
 /**
  * §4.1・§5.3 受信時のupsert: rid一致は updated の新しい方を採用。
  * 再転送・重複送信は常に安全。
@@ -57,7 +72,8 @@ export async function saveReceived(pid: string, records: CbtRecord[]): Promise<R
   const store = tx.objectStore('records');
   const result: ReceiveResult = { added: 0, updated: 0, unchanged: 0 };
 
-  for (const r of records) {
+  for (const incoming of records) {
+    const r = migrateRecord(incoming); // 旧アプリからの再転送にも防御的に対応
     const existing = await store.get([pid, r.rid]);
     if (!existing) {
       await store.put({ ...r, pid });

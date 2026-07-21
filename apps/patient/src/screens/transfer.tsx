@@ -5,10 +5,10 @@ import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
 import QRCode from 'qrcode';
 import {
   addDays,
+  clinicalDateOf,
+  clinicalTodayJst,
   encodeToFrames,
-  jstDateOf,
   nowJstIso,
-  todayJst,
   type CbtRecord,
   type EncodeResult,
   type PatientSettings,
@@ -19,19 +19,21 @@ import { BackLink, Card } from '../components';
 
 const LABEL: Record<string, string> = {
   activity_log: '活動記録',
-  three_column: '3コラム',
+  column: 'コラム',
   homework_week: 'ホームワーク',
+  day_label: '日ラベル',
 };
 
 const FRAME_INTERVAL_MS = 500; // §5.2 確定値
 const CHUNK_SIZE = 450; // §5.2 確定値
 
-/** 直近4週(今日を含む28日)に関係するレコードか */
+/** 直近4週(今日を含む28日)に関係するレコードか(臨床日=午前4時区切りで判定) */
 function inLast4Weeks(r: CbtRecord): boolean {
-  const from = addDays(todayJst(), -27);
-  if (r.type === 'activity_log') return jstDateOf(r.data.at) >= from;
+  const from = addDays(clinicalTodayJst(), -27);
+  if (r.type === 'activity_log') return clinicalDateOf(r.data.at) >= from;
   if (r.type === 'homework_week') return r.data.period.end >= from;
-  return jstDateOf(r.created) >= from;
+  if (r.type === 'day_label') return r.data.date >= from;
+  return clinicalDateOf(r.created) >= from;
 }
 
 function countByType(records: CbtRecord[]): [string, number][] {

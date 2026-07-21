@@ -1,7 +1,7 @@
 // レコード操作の共通ルール(仕様書 §4.1・§4.2)
 
 import { ulid } from 'ulid';
-import { nowJstIso } from './time';
+import { clinicalDateOf, nowJstIso } from './time';
 import type { CbtRecord, RecordType } from './types';
 
 /** レコードID(ULID)を生成 */
@@ -56,14 +56,14 @@ export function jstDateOf(iso: string): string {
 }
 
 /**
- * §4.2 ふりかえり表示: 活動記録を日ごとに束ね、日内はatの時刻順に並べる。
- * 返り値のMapは日付降順(新しい日が先)。
+ * §4.2 ふりかえり表示: 活動記録を日(臨床日=午前4時区切り)ごとに束ね、
+ * 日内はatの時刻順に並べる。返り値のMapは日付降順(新しい日が先)。
  */
 export function groupActivityLogsByDate(records: CbtRecord[]): Map<string, CbtRecord[]> {
   const byDate = new Map<string, CbtRecord[]>();
   for (const r of records) {
     if (r.type !== 'activity_log') continue;
-    const date = jstDateOf(r.data.at);
+    const date = clinicalDateOf(r.data.at);
     const list = byDate.get(date);
     if (list) list.push(r);
     else byDate.set(date, [r]);
@@ -82,9 +82,9 @@ export function groupActivityLogsByDate(records: CbtRecord[]): Map<string, CbtRe
 }
 
 /**
- * §4.4 record課題の自動実施判定: 期間内の各日について、
- * target_type のレコードがその日に存在するかを返す(日付昇順の配列)。
- * 判定に使う日付は activity_log は data.at、three_column は created を用いる。
+ * §4.4 record課題の自動実施判定: 期間内の各日(臨床日=午前4時区切り)について、
+ * target_type のレコードがその日に存在するかを返す。
+ * 判定に使う日付は activity_log は data.at、その他は created を用いる。
  */
 export function recordTaskDoneDates(
   records: CbtRecord[],
@@ -94,10 +94,55 @@ export function recordTaskDoneDates(
   const done = new Set<string>();
   for (const r of records) {
     if (r.type !== targetType) continue;
-    const date = r.type === 'activity_log' ? jstDateOf(r.data.at) : jstDateOf(r.created);
+    const date = r.type === 'activity_log' ? clinicalDateOf(r.data.at) : clinicalDateOf(r.created);
     if (period.start <= date && date <= period.end) done.add(date);
   }
   return done;
+}
+
+/**
+ * §4.2 日ラベル: 1日1つ。同一dateが複数あれば updated 最新を採用
+ * (旧レコードは非表示だが削除しない)
+ */
+export function latestDayLabelByDate(records: CbtRecord[]): Map<string, CbtRecord> {
+  const map = new Map<string, CbtRecord>();
+  for (const r of records) {
+    if (r.type !== 'day_label') continue;
+    const cur = map.get(r.data.date);
+    map.set(r.data.date, cur ? newerOf(cur, r) : r);
+  }
+  return map;
+}
+
+/**
+ * v1.3 移行処理: 旧 `three_column` → `column`(rid・updated・transferredは維持)、
+ * HW課題の target_type 'three_column' → 'column'。
+ * 変更が不要なら同一オブジェクトをそのまま返す(参照比較で移行要否を判定できる)。
+ */
+export function migrateRecord(record: CbtRecord): CbtRecord {
+  const rawType = (record as unknown as { type: string }).type;
+  if (rawType === 'three_column') {
+    return { ...(record as object), type: 'column' } as CbtRecord;
+  }
+  if (record.type === 'homework_week') {
+    const needs = record.data.tasks.some(
+      (t) => (t.target_type as string) === 'three_column',
+    );
+    if (needs) {
+      return {
+        ...record,
+        data: {
+          ...record.data,
+          tasks: record.data.tasks.map((t) =>
+            (t.target_type as string) === 'three_column'
+              ? { ...t, target_type: 'column' as RecordType }
+              : t,
+          ),
+        },
+      };
+    }
+  }
+  return record;
 }
 
 /** mood / intensity / belief の値域チェック(0–100の整数 or null) */
@@ -118,7 +163,7 @@ export function validateRecord(record: CbtRecord): string[] {
       if (!isValidMood(record.data.mood)) errors.push('mood は0〜100の整数またはnullです');
       break;
     }
-    case 'three_column': {
+    case 'column': {
       if (!record.data.event.trim()) errors.push('出来事が未入力です');
       for (const m of record.data.moods) {
         if (!isValidMood(m.intensity)) errors.push('気分の強さは0〜100の整数です');
@@ -126,6 +171,17 @@ export function validateRecord(record: CbtRecord): string[] {
       for (const t of record.data.thoughts) {
         if (!isValidMood(t.belief)) errors.push('確信度は0〜100の整数です');
       }
+      for (const t of record.data.reframe ?? []) {
+        if (!isValidMood(t.belief)) errors.push('新しい考え方の確信度は0〜100の整数です');
+      }
+      for (const m of record.data.moods_after ?? []) {
+        if (!isValidMood(m.intensity)) errors.push('気分の再評価は0〜100の整数です');
+      }
+      break;
+    }
+    case 'day_label': {
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(record.data.date)) errors.push('date の形式が不正です');
+      if (!record.data.label.trim()) errors.push('ラベルが未入力です');
       break;
     }
     case 'homework_week': {

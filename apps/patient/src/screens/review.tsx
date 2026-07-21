@@ -14,7 +14,7 @@ export function ReviewScreen() {
 
   const byDate = groupActivityLogsByDate(records);
   const threeCols = records
-    .filter((r) => r.type === 'three_column')
+    .filter((r) => r.type === 'column')
     .sort((a, b) => (a.created < b.created ? 1 : -1));
   const homeworks = records
     .filter((r) => r.type === 'homework_week')
@@ -45,10 +45,12 @@ export function ReviewScreen() {
         ))}
       </Card>
 
-      <Card title={`3コラム(${threeCols.length}場面)`}>
+      <Card title={`コラム(${threeCols.length}場面)`}>
         {threeCols.length === 0 && <p class="note">まだ記録がありません。</p>}
         {threeCols.slice(0, 20).map((r) => {
-          if (r.type !== 'three_column') return null;
+          if (r.type !== 'column') return null;
+          const hasVerify =
+            r.data.evidence || r.data.counter || r.data.reframe?.length || r.data.moods_after?.length;
           return (
             <div class="review-row" key={r.rid}>
               <b>{r.data.occurred ?? r.created.slice(0, 10)}</b> {r.data.event}
@@ -63,7 +65,22 @@ export function ReviewScreen() {
                     「{t.text}」確信度{t.belief}
                   </span>
                 ))}
+                {r.data.evidence && <span>根拠: {r.data.evidence}</span>}
+                {r.data.counter && <span>反証: {r.data.counter}</span>}
+                {(r.data.reframe ?? []).map((t) => (
+                  <span>
+                    新しい考え方: 「{t.text}」確信度{t.belief}
+                  </span>
+                ))}
+                {(r.data.moods_after ?? []).map((m) => (
+                  <span>
+                    再評価: {m.label} {m.intensity}
+                  </span>
+                ))}
               </div>
+              <a class="link-like" href={`#/column?rid=${r.rid}&step=4`}>
+                {hasVerify ? '検証の続きを書く' : 'この考えを検証する'}
+              </a>
             </div>
           );
         })}

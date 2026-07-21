@@ -1,20 +1,36 @@
-// ホーム(§6 v1.2: 「いま記録」1タップ導線、今日の記録件数、各帳票への導線、転送ボタン)
+// ホーム(§6 v1.3: 「いま記録」1タップ導線+時間帯マス、各帳票への導線、転送ボタン)
 
 import { useEffect, useState } from 'preact/hooks';
-import { todayJst, type PatientSettings } from '@cbt/core';
-import { getActivityLogsForDate, getUntransferred } from '../db';
-import { Card } from '../components';
+import { clinicalTodayJst, slotStartIso, SLOT_HOURS, type CbtRecord, type PatientSettings } from '@cbt/core';
+import { getActivityLogsForDate, getDayLabelForDate, getUntransferred } from '../db';
+import { TimeGrid } from '../components';
 
 export function Home({ settings }: { settings: PatientSettings }) {
-  const [todayCount, setTodayCount] = useState<number | null>(null);
+  const [logs, setLogs] = useState<CbtRecord[]>([]);
+  const [dayLabel, setDayLabel] = useState<string | undefined>(undefined);
   const [untransferred, setUntransferred] = useState(0);
+  const today = clinicalTodayJst();
 
   useEffect(() => {
     void (async () => {
-      setTodayCount((await getActivityLogsForDate(todayJst())).length);
-      setUntransferred((await getUntransferred()).length);
+      const [l, dl, un] = await Promise.all([
+        getActivityLogsForDate(today),
+        getDayLabelForDate(today),
+        getUntransferred(),
+      ]);
+      setLogs(l);
+      setDayLabel(dl && dl.type === 'day_label' ? dl.data.label : undefined);
+      setUntransferred(un.length);
     })();
-  }, []);
+  }, [today]);
+
+  const onSlotTap = (slotIndex: number, slotLogs: CbtRecord[]) => {
+    if (slotLogs.length > 0) {
+      location.hash = `#/log?slot=${slotIndex}`;
+    } else {
+      location.hash = `#/log?at=${encodeURIComponent(slotStartIso(today, slotIndex, SLOT_HOURS))}`;
+    }
+  };
 
   return (
     <>
@@ -28,14 +44,16 @@ export function Home({ settings }: { settings: PatientSettings }) {
 
       <a class="now-button" href="#/log">
         <b>いま記録</b>
-        <span>
-          {todayCount === null ? '…' : todayCount === 0 ? '今日はまだ記録がありません' : `今日 ${todayCount} 件記録済み`}
-        </span>
+        <span>{logs.length > 0 ? `今日 ${logs.length} 件記録できています` : 'タップして最初の記録を'}</span>
       </a>
 
+      <div class="card">
+        <TimeGrid date={today} logs={logs} dayLabel={dayLabel} onSlotTap={onSlotTap} />
+      </div>
+
       <nav class="menu">
-        <a class="menu-item" href="#/threecol">
-          <b>3コラム</b>
+        <a class="menu-item" href="#/column">
+          <b>コラム</b>
           <span>出来事・気分・自動思考</span>
         </a>
         <a class="menu-item" href="#/homework">

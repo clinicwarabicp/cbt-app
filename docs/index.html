@@ -56,6 +56,15 @@
       }
       .day-chip.checked { background: #ecfdf5; border-color: #059669; color: #047857; font-weight: 700; }
       .day-chip.today { outline: 2px solid #2563eb33; }
+      .time-grid { display: grid; gap: 8px; }
+      .time-grid-head { display: flex; gap: 8px; align-items: center; font-size: 14px; font-weight: 600; }
+      .day-label-chip { font-size: 12px; font-weight: 400; background: #eef2f7; border-radius: 999px; padding: 3px 10px; color: #475569; }
+      .time-grid-cells { display: grid; grid-template-columns: repeat(8, 1fr); gap: 4px; }
+      .time-cell {
+        aspect-ratio: 1.6; padding: 0; font-size: 11px; border-radius: 6px;
+        border: 1px solid #e3e6ea; background: #fff; color: #b8bec6;
+      }
+      .time-cell.filled { background: #2563eb; border-color: #2563eb; color: #fff; font-weight: 600; }
       .menu { display: grid; gap: 8px; }
       .menu-item {
         display: grid; gap: 2px; background: #fff; border-radius: 12px; padding: 14px;
@@ -98,7 +107,7 @@
       details pre { font-size: 10px; overflow-x: auto; background: #f0f0f4; padding: 8px; border-radius: 8px; }
       details summary { font-size: 13px; color: #555; cursor: pointer; }
     </style>
-    <script type="module" crossorigin src="/cbt-app/assets/index-cxpkjxV3.js"></script>
+    <script type="module" crossorigin src="/cbt-app/assets/index-DLIaZGiX.js"></script>
   <link rel="manifest" href="/cbt-app/manifest.webmanifest"><script id="vite-plugin-pwa:register-sw" src="/cbt-app/registerSW.js"></script></head>
   <body>
     <main id="app"></main>

@@ -3,7 +3,10 @@
 import { openDB, type DBSchema, type IDBPDatabase } from 'idb';
 import {
   applyEdit,
-  jstDateOf,
+  clinicalDateOf,
+  latestDayLabelByDate,
+  migrateRecord,
+  newEnvelope,
   newerOf,
   nowJstIso,
   upsertByRid,
@@ -69,20 +72,77 @@ export async function getAllRecords(): Promise<CbtRecord[]> {
   return (await db()).getAll('records');
 }
 
+export async function getRecord(rid: string): Promise<CbtRecord | undefined> {
+  return (await db()).get('records', rid);
+}
+
 export async function getByType(type: RecordType): Promise<CbtRecord[]> {
   return (await db()).getAllFromIndex('records', 'by-type', type);
 }
 
-/** §4.2: 指定日(JST)の活動記録を時刻順で返す */
+/**
+ * v1.3 移行処理: 旧 three_column → column 等。アプリ起動時に1回呼ぶ(冪等)。
+ * updated・transferred は維持する(内容編集ではないため)
+ */
+export async function runMigrations(): Promise<number> {
+  const d = await db();
+  const all = await d.getAll('records');
+  const changed = all
+    .map((r) => ({ before: r, after: migrateRecord(r) }))
+    .filter((x) => x.after !== x.before);
+  if (changed.length > 0) {
+    const tx = d.transaction('records', 'readwrite');
+    await Promise.all(changed.map((x) => tx.store.put(x.after)));
+    await tx.done;
+  }
+  return changed.length;
+}
+
+/** §4.2: 指定日(臨床日=午前4時区切り)の活動記録を時刻順で返す */
 export async function getActivityLogsForDate(date: string): Promise<CbtRecord[]> {
   const logs = await getByType('activity_log');
   return logs
-    .filter((r) => r.type === 'activity_log' && jstDateOf(r.data.at) === date)
+    .filter((r) => r.type === 'activity_log' && clinicalDateOf(r.data.at) === date)
     .sort((a, b) =>
       (a.type === 'activity_log' ? a.data.at : '') < (b.type === 'activity_log' ? b.data.at : '')
         ? -1
         : 1,
     );
+}
+
+// ---- 日ラベル(v1.3 §4.2: 1日1つ・任意) ----
+
+export async function getDayLabelForDate(date: string): Promise<CbtRecord | undefined> {
+  const labels = await getByType('day_label');
+  return latestDayLabelByDate(labels).get(date);
+}
+
+/** 設定・変更(既存があれば同一ridを編集)。空文字は何もしない */
+export async function saveDayLabel(date: string, label: string): Promise<void> {
+  const trimmed = label.trim();
+  if (!trimmed) return;
+  const existing = await getDayLabelForDate(date);
+  const record: CbtRecord =
+    existing && existing.type === 'day_label'
+      ? { ...existing, data: { date, label: trimmed } }
+      : { ...newEnvelope('day_label'), type: 'day_label', data: { date, label: trimmed } };
+  await saveRecord(record);
+}
+
+/** 自由入力の履歴から候補を作る(頻度順・定番と重複しないもの・最大5件) */
+export async function dayLabelSuggestions(exclude: string[]): Promise<string[]> {
+  const labels = await getByType('day_label');
+  const freq = new Map<string, number>();
+  for (const r of labels) {
+    if (r.type !== 'day_label') continue;
+    const l = r.data.label;
+    if (exclude.includes(l)) continue;
+    freq.set(l, (freq.get(l) ?? 0) + 1);
+  }
+  return [...freq.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 5)
+    .map(([l]) => l);
 }
 
 /** 今日を含む期間のHW週レコード(複数あれば updated 最新) */

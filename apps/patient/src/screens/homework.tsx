@@ -5,9 +5,9 @@
 import { useEffect, useState } from 'preact/hooks';
 import {
   addDays,
+  clinicalTodayJst,
   newEnvelope,
   recordTaskDoneDates,
-  todayJst,
   validateRecord,
   type CbtRecord,
   type HomeworkTask,
@@ -21,7 +21,7 @@ import { BackLink, Card, CrisisFooter } from '../components';
 const KIND_LABEL = { record: '記録', oneshot: '単発', daily: '日課' } as const;
 const TARGET_LABEL: Record<string, string> = {
   activity_log: '活動記録',
-  three_column: '3コラム',
+  column: 'コラム',
 };
 const WEEKDAY = ['日', '月', '火', '水', '木', '金', '土'];
 
@@ -42,7 +42,7 @@ export function HomeworkScreen({ settings }: { settings: PatientSettings }) {
   useEffect(() => {
     void (async () => {
       const [existing, all] = await Promise.all([
-        getHomeworkForDate(todayJst()),
+        getHomeworkForDate(clinicalTodayJst()),
         getAllRecords(),
       ]);
       setAllRecords(all);
@@ -73,7 +73,7 @@ export function HomeworkScreen({ settings }: { settings: PatientSettings }) {
   };
 
   const createWeek = () => {
-    const start = todayJst();
+    const start = clinicalTodayJst();
     setData({
       session_no: 1,
       period: { start, end: addDays(start, 6) },
@@ -85,8 +85,9 @@ export function HomeworkScreen({ settings }: { settings: PatientSettings }) {
   };
 
   // ---- 状態表示ヘルパ ----
+  // 「今日」は臨床日(午前4時区切り)。深夜3時台のチェックは前日扱いになる
 
-  const today = todayJst();
+  const today = clinicalTodayJst();
 
   const taskStatus = (t: HomeworkTask) => {
     if (!data) return null;
@@ -160,7 +161,10 @@ export function HomeworkScreen({ settings }: { settings: PatientSettings }) {
             <span class="hw-content">
               {t.content}
               {t.kind === 'record' && t.target_type && (
-                <em class="note">({TARGET_LABEL[t.target_type] ?? t.target_type}に自動連動)</em>
+                <em class="note">
+                  ({TARGET_LABEL[t.target_type] ?? t.target_type}に自動連動
+                  {t.target_count !== undefined && `・目安${t.target_count}場面`})
+                </em>
               )}
             </span>
             {taskStatus(t)}
@@ -282,19 +286,40 @@ export function HomeworkScreen({ settings }: { settings: PatientSettings }) {
                 <option value="daily">日課</option>
               </select>
               {t.kind === 'record' && (
-                <select
-                  value={t.target_type}
-                  onChange={(e) => {
-                    const target_type = e.currentTarget.value as RecordType;
-                    setData({
-                      ...data,
-                      tasks: data.tasks.map((x, j) => (j === i ? { ...x, target_type } : x)),
-                    });
-                  }}
-                >
-                  <option value="activity_log">活動記録</option>
-                  <option value="three_column">3コラム</option>
-                </select>
+                <>
+                  <select
+                    value={t.target_type}
+                    onChange={(e) => {
+                      const target_type = e.currentTarget.value as RecordType;
+                      setData({
+                        ...data,
+                        tasks: data.tasks.map((x, j) => (j === i ? { ...x, target_type } : x)),
+                      });
+                    }}
+                  >
+                    <option value="activity_log">活動記録</option>
+                    <option value="column">コラム</option>
+                  </select>
+                  <label>
+                    目安{' '}
+                    <input
+                      class="num"
+                      type="number"
+                      min={1}
+                      max={99}
+                      value={t.target_count ?? ''}
+                      placeholder="-"
+                      onChange={(e) => {
+                        const v = e.currentTarget.value;
+                        const target_count = v === '' ? undefined : Number(v);
+                        setData({
+                          ...data,
+                          tasks: data.tasks.map((x, j) => (j === i ? { ...x, target_count } : x)),
+                        });
+                      }}
+                    />
+                  </label>
+                </>
               )}
               <input
                 type="text"

@@ -52,13 +52,13 @@ export function makeDummyPayload(weeks: number): TransferPayload {
         });
       }
     }
-    // 3コラム3場面
+    // コラム3場面
     for (let k = 0; k < 3; k++) {
       const day = new Date(now.getTime() - (w * 7 + k * 2) * 86400e3);
       const at = iso(day, 20, 0);
       records.push({
         rid: newRid(),
-        type: 'three_column',
+        type: 'column',
         schema: 1,
         created: at,
         updated: at,
@@ -94,7 +94,7 @@ export function makeDummyPayload(weeks: number): TransferPayload {
         period: { start: dateStr(start), end: dateStr(end) },
         tasks: [
           { no: 1, kind: 'record', content: '活動記録を毎日つける', target_type: 'activity_log' },
-          { no: 2, kind: 'record', content: '3コラムを2場面', target_type: 'three_column' },
+          { no: 2, kind: 'record', content: 'コラムを2場面', target_type: 'column', target_count: 2 },
           { no: 3, kind: 'daily', content: '朝にカーテンを開ける' },
           { no: 4, kind: 'oneshot', content: '散歩コースを決める', done: w % 2 === 0 },
         ],

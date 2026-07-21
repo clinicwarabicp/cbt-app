@@ -176,6 +176,47 @@ export function SettingsScreen({
         )}
       </Card>
 
+      <details>
+        <summary class="note">詳細設定(記録モード)</summary>
+        <Card title="コラムの記録モード">
+          <p class="note">担当の先生と一緒に切り替えてください。</p>
+          <div class="row">
+            <label>
+              <input
+                type="radio"
+                name="column_mode"
+                checked={(settings.column_mode ?? 'three') === 'three'}
+                onChange={() =>
+                  void (async () => {
+                    await saveSettings({ ...settings, column_mode: 'three' });
+                    await onChanged();
+                    say('記録モードを3コラムにしました');
+                  })()
+                }
+              />{' '}
+              3コラム(出来事・気分・自動思考)
+            </label>
+          </div>
+          <div class="row">
+            <label>
+              <input
+                type="radio"
+                name="column_mode"
+                checked={settings.column_mode === 'seven'}
+                onChange={() =>
+                  void (async () => {
+                    await saveSettings({ ...settings, column_mode: 'seven' });
+                    await onChanged();
+                    say('記録モードを7コラムにしました');
+                  })()
+                }
+              />{' '}
+              7コラム(根拠・反証・新しい考え方・気分の再評価まで)
+            </label>
+          </div>
+        </Card>
+      </details>
+
       <Card title="機種変更(JSON書き出し・読み込み)">
         <p class="note">
           書き出したファイルは <b>AirDrop・ニアバイシェア等の端末間直接共有</b>で移してください。

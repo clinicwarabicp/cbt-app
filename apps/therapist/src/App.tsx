@@ -8,7 +8,7 @@ import { prepareZXingModule, readBarcodes } from 'zxing-wasm/reader';
 import wasmUrl from 'zxing-wasm/reader/zxing_reader.wasm?url';
 import { FrameCollector } from '@cbt/core';
 import type { CollectorEvent, TransferPayload } from '@cbt/core';
-import { getPatients, saveReceived, type PatientMeta, type ReceiveResult } from './db';
+import { getPatients, runMigrations, saveReceived, type PatientMeta, type ReceiveResult } from './db';
 
 // WASMをCDNではなくアプリと同一オリジンから配信する(オフライン動作・院内ネットワーク要件)
 prepareZXingModule({
@@ -36,8 +36,9 @@ interface Result {
 
 const LABEL: Record<string, string> = {
   activity_log: '活動記録',
-  three_column: '3コラム',
+  column: 'コラム',
   homework_week: 'HW',
+  day_label: '日ラベル',
 };
 
 function summarize(payload: TransferPayload): { type: string; count: number }[] {
@@ -71,7 +72,10 @@ export function App() {
   }, []);
 
   useEffect(() => {
-    void reloadPatients();
+    void (async () => {
+      await runMigrations(); // v1.3 旧型移行(冪等)
+      await reloadPatients();
+    })();
   }, [reloadPatients]);
 
   const handleEvent = useCallback(
