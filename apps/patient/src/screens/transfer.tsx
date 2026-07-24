@@ -27,7 +27,7 @@ const LABEL: Record<string, string> = {
 const FRAME_INTERVAL_MS = 500; // §5.2 確定値
 const CHUNK_SIZE = 450; // §5.2 確定値
 
-/** 直近4週(今日を含む28日)に関係するレコードか(臨床日=午前4時区切りで判定) */
+/** 直近4週(今日を含む28日)に関係するレコードか(臨床日=午前5時区切りで判定) */
 function inLast4Weeks(r: CbtRecord): boolean {
   const from = addDays(clinicalTodayJst(), -27);
   if (r.type === 'activity_log') return clinicalDateOf(r.data.at) >= from;

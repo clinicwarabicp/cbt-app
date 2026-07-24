@@ -98,7 +98,7 @@ export async function runMigrations(): Promise<number> {
   return changed.length;
 }
 
-/** §4.2: 指定日(臨床日=午前4時区切り)の活動記録を時刻順で返す */
+/** §4.2: 指定日(臨床日=午前5時区切り)の活動記録を時刻順で返す */
 export async function getActivityLogsForDate(date: string): Promise<CbtRecord[]> {
   const logs = await getByType('activity_log');
   return logs

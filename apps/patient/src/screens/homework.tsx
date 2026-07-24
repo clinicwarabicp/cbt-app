@@ -85,7 +85,7 @@ export function HomeworkScreen({ settings }: { settings: PatientSettings }) {
   };
 
   // ---- 状態表示ヘルパ ----
-  // 「今日」は臨床日(午前4時区切り)。深夜3時台のチェックは前日扱いになる
+  // 「今日」は臨床日(午前5時区切り)。深夜0〜4時台のチェックは前日扱いになる
 
   const today = clinicalTodayJst();
 

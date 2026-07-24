@@ -19,24 +19,25 @@ export function addDays(date: string, days: number): string {
   return d.toISOString().slice(0, 10);
 }
 
-// ---- 臨床日(1日の区切り=午前4時。v1.3 §4.2) ----
+// ---- 臨床日(1日の区切り=午前5時。v1.3.1 §4.2) ----
+// 院内の紙の生活記録表(5:00始まり〜4:00終わりの24時間グリッド)と行を揃える。
 // データは実時刻のまま保存し、日への帰属は表示層で計算する(保存時に丸めない)
 
-export const DAY_BOUNDARY_HOUR = 4;
+export const DAY_BOUNDARY_HOUR = 5;
 
-/** 記録時刻(ISO +09:00)が帰属する「日」。0:00〜3:59は前日に帰属 */
+/** 記録時刻(ISO +09:00)が帰属する「日」。0:00〜4:59は前日に帰属 */
 export function clinicalDateOf(iso: string): string {
   const hour = parseInt(iso.slice(11, 13), 10);
   const date = iso.slice(0, 10);
   return hour < DAY_BOUNDARY_HOUR ? addDays(date, -1) : date;
 }
 
-/** 今日(臨床日)。深夜3時台は前日扱い */
+/** 今日(臨床日)。深夜0〜4時台は前日扱い */
 export function clinicalTodayJst(now: Date = new Date()): string {
   return clinicalDateOf(nowJstIso(now));
 }
 
-// ---- 時間帯マス(v1.3 §4.2: 4時始まり〜翌3時終わり) ----
+// ---- 時間帯マス(v1.3.1 §4.2: 5時始まり〜翌4時終わり) ----
 // 粒度は SLOT_HOURS の変更のみで2時間刻みに切り替えられる
 
 export const SLOT_HOURS = 1; // 1 or 2
@@ -45,7 +46,7 @@ export function slotCount(slotHours: number = SLOT_HOURS): number {
   return Math.ceil(24 / slotHours);
 }
 
-/** 記録時刻 → マス番号(0始まり。0=4時台〜) */
+/** 記録時刻 → マス番号(0始まり。0=5時台〜) */
 export function slotIndexOf(iso: string, slotHours: number = SLOT_HOURS): number {
   const hour = parseInt(iso.slice(11, 13), 10);
   return Math.floor(((hour - DAY_BOUNDARY_HOUR + 24) % 24) / slotHours);

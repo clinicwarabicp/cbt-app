@@ -81,10 +81,10 @@ describe('upsertByRid(§4.1 治療者側upsert)', () => {
   });
 });
 
-describe('clinicalDateOf(v1.3 §4.2: 1日の区切り=午前4時)', () => {
-  it('0:00〜3:59は前日に帰属、4:00からは当日', () => {
-    expect(clinicalDateOf('2026-07-16T03:59:00+09:00')).toBe('2026-07-15');
-    expect(clinicalDateOf('2026-07-16T04:00:00+09:00')).toBe('2026-07-16');
+describe('clinicalDateOf(v1.3.1 §4.2: 1日の区切り=午前5時)', () => {
+  it('0:00〜4:59は前日に帰属、5:00からは当日', () => {
+    expect(clinicalDateOf('2026-07-16T04:59:00+09:00')).toBe('2026-07-15');
+    expect(clinicalDateOf('2026-07-16T05:00:00+09:00')).toBe('2026-07-16');
     expect(clinicalDateOf('2026-07-16T00:00:00+09:00')).toBe('2026-07-15');
     expect(clinicalDateOf('2026-07-16T23:59:00+09:00')).toBe('2026-07-16');
   });
@@ -98,30 +98,30 @@ describe('clinicalDateOf(v1.3 §4.2: 1日の区切り=午前4時)', () => {
   });
 });
 
-describe('時間帯マス(v1.3 §4.2: 4時始まり)', () => {
-  it('1時間刻み: 4時台=マス0、23時台=マス19、0時台=マス20、3時台=マス23', () => {
+describe('時間帯マス(v1.3.1 §4.2: 5時始まり)', () => {
+  it('1時間刻み: 5時台=マス0、23時台=マス18、0時台=マス19、4時台=マス23', () => {
     expect(slotCount(1)).toBe(24);
-    expect(slotIndexOf('2026-07-16T04:10:00+09:00', 1)).toBe(0);
-    expect(slotIndexOf('2026-07-16T23:59:00+09:00', 1)).toBe(19);
-    expect(slotIndexOf('2026-07-17T00:30:00+09:00', 1)).toBe(20);
-    expect(slotIndexOf('2026-07-17T03:59:00+09:00', 1)).toBe(23);
+    expect(slotIndexOf('2026-07-16T05:10:00+09:00', 1)).toBe(0);
+    expect(slotIndexOf('2026-07-16T23:59:00+09:00', 1)).toBe(18);
+    expect(slotIndexOf('2026-07-17T00:30:00+09:00', 1)).toBe(19);
+    expect(slotIndexOf('2026-07-17T04:59:00+09:00', 1)).toBe(23);
   });
 
   it('2時間刻みへも定数変更のみで対応(粒度の将来変更)', () => {
     expect(slotCount(2)).toBe(12);
-    expect(slotIndexOf('2026-07-16T04:10:00+09:00', 2)).toBe(0);
-    expect(slotIndexOf('2026-07-16T05:59:00+09:00', 2)).toBe(0);
-    expect(slotIndexOf('2026-07-17T03:59:00+09:00', 2)).toBe(11);
+    expect(slotIndexOf('2026-07-16T05:10:00+09:00', 2)).toBe(0);
+    expect(slotIndexOf('2026-07-16T06:59:00+09:00', 2)).toBe(0);
+    expect(slotIndexOf('2026-07-17T04:59:00+09:00', 2)).toBe(11);
   });
 
   it('slotStartIso: 深夜マスは実日付が翌日になる(保存は実時刻のまま)', () => {
-    expect(slotStartHour(0, 1)).toBe(4);
-    expect(slotStartHour(20, 1)).toBe(0);
-    expect(slotStartIso('2026-07-16', 0, 1)).toBe('2026-07-16T04:00:00+09:00');
-    expect(slotStartIso('2026-07-16', 20, 1)).toBe('2026-07-17T00:00:00+09:00');
+    expect(slotStartHour(0, 1)).toBe(5);
+    expect(slotStartHour(19, 1)).toBe(0);
+    expect(slotStartIso('2026-07-16', 0, 1)).toBe('2026-07-16T05:00:00+09:00');
+    expect(slotStartIso('2026-07-16', 19, 1)).toBe('2026-07-17T00:00:00+09:00');
     // 往復: マス開始時刻は同じ臨床日・同じマスに戻る
-    expect(clinicalDateOf(slotStartIso('2026-07-16', 20, 1))).toBe('2026-07-16');
-    expect(slotIndexOf(slotStartIso('2026-07-16', 20, 1), 1)).toBe(20);
+    expect(clinicalDateOf(slotStartIso('2026-07-16', 19, 1))).toBe('2026-07-16');
+    expect(slotIndexOf(slotStartIso('2026-07-16', 19, 1), 1)).toBe(19);
   });
 });
 

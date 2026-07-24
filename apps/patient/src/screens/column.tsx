@@ -41,6 +41,31 @@ interface WeekTarget {
   current: number;
 }
 
+/**
+ * 列4-7の画面上部に常時表示する列1-3の参照(折りたたみ可・既定は展開)。
+ * 認知再構成は元の場面と自動思考を見ながら行う作業のため必須の参照。
+ */
+function ColumnReference({ data }: { data: ColumnData }) {
+  return (
+    <details class="col-ref" open>
+      <summary>元の記録(列1-3)を見る</summary>
+      <div class="col-ref-body">
+        <p>
+          <b>出来事</b>
+          {data.occurred ? `(${data.occurred})` : ''}: {data.event}
+        </p>
+        <p>
+          <b>気分</b>: {data.moods.map((m) => `${m.label} ${m.intensity}`).join('、')}
+        </p>
+        <p>
+          <b>自動思考</b>:{' '}
+          {data.thoughts.map((t) => `「${t.text}」確信度${t.belief}`).join('、')}
+        </p>
+      </div>
+    </details>
+  );
+}
+
 export function ColumnScreen({
   settings,
   params,
@@ -133,6 +158,8 @@ export function ColumnScreen({
         ))}
       </p>
       {message && <div class="banner ok">{message}</div>}
+
+      {step >= 4 && <ColumnReference data={data} />}
 
       {step === 1 && (
         <Card title="① 出来事 — いつ・どこで・何があったか">
@@ -393,23 +420,32 @@ export function ColumnScreen({
 
       {step === 7 && (
         <Card title="⑦ 気分の再評価 — いまの気分(任意)">
+          <p class="note">はじめに記録した気分(列2)と見比べながら、いまの強さを付けます。</p>
           {(data.moods_after ?? data.moods.map((m) => ({ ...m }))).map((m, i) => {
             const list = data.moods_after ?? data.moods.map((x) => ({ ...x }));
+            const original = data.moods[i];
             return (
               <div class="list-item" key={i}>
-                <input
-                  type="text"
-                  value={m.label}
-                  onInput={(e) => {
-                    const label = e.currentTarget.value;
-                    setData((d) => ({
-                      ...d,
-                      moods_after: list.map((x, j) => (j === i ? { ...x, label } : x)),
-                    }));
-                  }}
-                />
+                <div class="row">
+                  <input
+                    type="text"
+                    value={m.label}
+                    onInput={(e) => {
+                      const label = e.currentTarget.value;
+                      setData((d) => ({
+                        ...d,
+                        moods_after: list.map((x, j) => (j === i ? { ...x, label } : x)),
+                      }));
+                    }}
+                  />
+                  {original && (
+                    <span class="note">
+                      はじめ: {original.label} <b>{original.intensity}</b>
+                    </span>
+                  )}
+                </div>
                 <MoodInput
-                  label="強さ"
+                  label="いまの強さ"
                   value={m.intensity}
                   onChange={(v) => {
                     const intensity = v ?? 0;
